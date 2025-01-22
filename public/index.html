@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Web</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #qr-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        #status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>WhatsApp Web</h1>
+    <div id="status" class="disconnected">Desconectado</div>
+    <div id="qr-container"></div>
+    <button onclick="disconnect()">Desconectar</button>
+    <button onclick="generateQR()">Generar QR</button>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        //port 3000 0.0.0.0
+        const socket = io(`${window.location.protocol}//${host}:${port}`, {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+        });
+        const qrContainer = document.getElementById('qr-container');
+        const statusDiv = document.getElementById('status');
+
+        socket.on('qr', (qrUrl) => {
+            qrContainer.innerHTML = `<img src="${qrUrl}" alt="QR Code">`;
+        });
+
+        socket.on('status', (statusText) => {
+            statusDiv.textContent = statusText;
+            statusDiv.className = statusText === 'Conectado' ? 'status connected' : 'status disconnected';
+        });
+
+        function disconnect() {
+            fetch('/disconnect').then(() => location.reload());
+        }
+
+        function generateQR() {
+            client.initialize();
+        }
+    </script>
+</body>
+
+</html>
