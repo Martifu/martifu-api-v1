@@ -25,7 +25,7 @@ const client = new Client({
             '--disable-dev-shm-usage',
             '--disable-gpu'
         ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
+        executablePath: '/usr/bin/brave-browser'
     }
 });
 
