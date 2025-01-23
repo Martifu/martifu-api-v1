@@ -12,6 +12,7 @@
   "dependencies": {
     "@doist/todoist-api-typescript": "^4.0.0-alpha.2",
     "axios": "^1.7.9",
+    "elevenlabs": "^1.50.4",
     "express": "^4.21.2",
     "qrcode": "^1.5.4",
     "rimraf": "^6.0.1",
