@@ -307,24 +307,40 @@ Mi nombre es Martín y debes de darme los buenos días usando mi nombre y o dici
             model_id: "eleven_multilingual_v2",
         });
 
+        console.log("Iniciando conversión de audio 1...");
+        const audioBuffer1 = await streamToBuffer(audio1).catch(error => {
+            console.error("Error al procesar audio 1:", error);
+            throw error;
+        });
+        console.log("Conversión de audio 1 completada");
+
+
         const audio2 = await clientEL.textToSpeech.convert("uEtBdoxJywfMwzd5cfSv", {
             output_format: "mp3_44100_128",
             text: mensaje_final,
             model_id: "eleven_multilingual_v2",
         });
 
-        const audioBuffer1 = await streamToBuffer(audio1); // Convierte el flujo a Buffer
+        console.log("Iniciando conversión de audio 2...");
+        const audioBuffer2 = await streamToBuffer(audio2).catch(error => {
+            console.error("Error al procesar audio 2:", error);
+            throw error;
+        });
+        console.log("Conversión de audio 2 completada");
+
+        console.log("Iniciando conversión base64 de audio 2...");
         const audioBase641 = audioBuffer1.toString('base64');
+        console.log("Conversión de audio 2 completada");
 
-        const audioBuffer2 = await streamToBuffer(audio2); // Convierte el flujo a Buffer
+        console.log("Iniciando conversión base64 de audio 2...");
         const audioBase642 = audioBuffer2.toString('base64');
-
+        console.log("Conversión de audio 2 completada");
 
         var media1 = await new MessageMedia('audio/mpeg', audioBase641, 'audio.mp3');
         //send saludo
         await client.sendMessage(chatId, media1, { sendAudioAsVoice: true });
 
-        // sen tareas
+        // send tareas
         await client.sendMessage(chatId, tareas);
 
         var media2 = await new MessageMedia('audio/mpeg', audioBase642, 'audio.mp3');
@@ -340,16 +356,24 @@ Mi nombre es Martín y debes de darme los buenos días usando mi nombre y o dici
 
 async function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
+        // if (!(stream instanceof Readable)) {
+        //     console.error("El stream no es una instancia de Readable");
+        //     return reject(new Error("Stream inválido"));
+        // }
+
         const chunks = [];
+        let totalBytes = 0;
 
         stream.on("data", (chunk) => {
-            console.log("Chunk recibido:", chunk.length, "bytes");
+            totalBytes += chunk.length;
+            console.log(`Chunk recibido: ${chunk.length} bytes. Total: ${totalBytes} bytes`);
             chunks.push(chunk);
         });
 
         stream.on("end", () => {
-            console.log("Flujo finalizado");
-            resolve(Buffer.concat(chunks));
+            console.log(`Flujo finalizado. Total bytes recibidos: ${totalBytes}`);
+            const buffer = Buffer.concat(chunks);
+            resolve(buffer);
         });
 
         stream.on("error", (err) => {
@@ -357,10 +381,15 @@ async function streamToBuffer(stream) {
             reject(err);
         });
 
-        // Forzar que el flujo comience a emitir datos
-        stream.resume();
+        // Establecer un timeout por si el stream se queda estancado
+        const timeout = setTimeout(() => {
+            stream.destroy();
+            reject(new Error("Timeout: El stream no respondió en 30 segundos"));
+        }, 30000);
 
-        console.log("Escuchando eventos del flujo...");
+        // Limpiar el timeout si el stream termina correctamente
+        stream.on("end", () => clearTimeout(timeout));
+        stream.on("error", () => clearTimeout(timeout));
     });
 }
 
