@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const rimraf = require('rimraf');
 const { ElevenLabsClient } = require("elevenlabs");
-const { Readable } = require("stream");
+const { Readable, PassThrough } = require("stream");
 
 /**
  * Cleans up WhatsApp Web.js cache directories
@@ -301,15 +301,16 @@ Mi nombre es Martín y debes de darme los buenos días usando mi nombre y o dici
 
 
         const clientEL = new ElevenLabsClient({ apiKey: el_api_key });
+        console.log("Solicitando audio a ElevenLabs...");
         const audio1 = await clientEL.textToSpeech.convert("uEtBdoxJywfMwzd5cfSv", {
             output_format: "mp3_44100_128",
             text: saludo,
             model_id: "eleven_multilingual_v2",
         });
+        console.log("Respuesta recibida de ElevenLabs, iniciando procesamiento...");
 
-        console.log("Iniciando conversión de audio 1...");
         const audioBuffer1 = await streamToBuffer(audio1).catch(error => {
-            console.error("Error al procesar audio 1:", error);
+            console.error("Error detallado:", error);
             throw error;
         });
         console.log("Conversión de audio 1 completada");
@@ -356,26 +357,19 @@ Mi nombre es Martín y debes de darme los buenos días usando mi nombre y o dici
 
 async function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
+        const passThrough = new PassThrough();
         const chunks = [];
         let totalBytes = 0;
-
-        // Aumentar el timeout a 2 minutos ya que la generación de voz puede tardar
-        const TIMEOUT_DURATION = 120000; // 2 minutos en milisegundos
         
-        console.log("Iniciando proceso de stream...");
+        console.log("Iniciando proceso de stream con PassThrough...");
         
-        // Forzar el inicio del stream
-        if (typeof stream.resume === 'function') {
-            stream.resume();
-        }
-
-        stream.on("data", (chunk) => {
+        passThrough.on("data", (chunk) => {
             totalBytes += chunk.length;
             console.log(`Chunk recibido: ${chunk.length} bytes. Total: ${totalBytes} bytes`);
             chunks.push(chunk);
         });
 
-        stream.on("end", () => {
+        passThrough.on("end", () => {
             if (chunks.length === 0) {
                 console.error("Stream finalizado sin datos");
                 reject(new Error("No se recibieron datos del stream"));
@@ -386,27 +380,26 @@ async function streamToBuffer(stream) {
             resolve(buffer);
         });
 
-        stream.on("error", (err) => {
+        passThrough.on("error", (err) => {
             console.error("Error en el stream:", err);
             reject(err);
         });
 
+        // Pipe el stream original a través del PassThrough
+        if (stream.pipe) {
+            stream.pipe(passThrough);
+        } else {
+            reject(new Error("El stream proporcionado no soporta pipe"));
+        }
+
+        // Timeout de seguridad
         const timeout = setTimeout(() => {
-            console.error(`Timeout alcanzado después de ${TIMEOUT_DURATION/1000} segundos`);
-            if (stream.destroy && typeof stream.destroy === 'function') {
-                stream.destroy();
-            }
-            reject(new Error(`Timeout: El stream no respondió en ${TIMEOUT_DURATION/1000} segundos`));
-        }, TIMEOUT_DURATION);
+            passThrough.destroy();
+            reject(new Error("Timeout: El stream no respondió en 120 segundos"));
+        }, 120000);
 
-        // Limpiar el timeout si el stream termina correctamente
-        stream.on("end", () => {
-            clearTimeout(timeout);
-        });
-
-        stream.on("error", () => {
-            clearTimeout(timeout);
-        });
+        passThrough.on("end", () => clearTimeout(timeout));
+        passThrough.on("error", () => clearTimeout(timeout));
     });
 }
 
