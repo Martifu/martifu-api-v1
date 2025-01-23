@@ -25,7 +25,6 @@ const client = new Client({
             '--disable-dev-shm-usage',
             '--disable-gpu'
         ],
-        executablePath: '/usr/bin/brave-browser'
     }
 });
 
