@@ -356,13 +356,18 @@ Mi nombre es Martín y debes de darme los buenos días usando mi nombre y o dici
 
 async function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
-        // if (!(stream instanceof Readable)) {
-        //     console.error("El stream no es una instancia de Readable");
-        //     return reject(new Error("Stream inválido"));
-        // }
-
         const chunks = [];
         let totalBytes = 0;
+
+        // Aumentar el timeout a 2 minutos ya que la generación de voz puede tardar
+        const TIMEOUT_DURATION = 120000; // 2 minutos en milisegundos
+        
+        console.log("Iniciando proceso de stream...");
+        
+        // Forzar el inicio del stream
+        if (typeof stream.resume === 'function') {
+            stream.resume();
+        }
 
         stream.on("data", (chunk) => {
             totalBytes += chunk.length;
@@ -371,25 +376,37 @@ async function streamToBuffer(stream) {
         });
 
         stream.on("end", () => {
-            console.log(`Flujo finalizado. Total bytes recibidos: ${totalBytes}`);
+            if (chunks.length === 0) {
+                console.error("Stream finalizado sin datos");
+                reject(new Error("No se recibieron datos del stream"));
+                return;
+            }
+            console.log(`Flujo finalizado exitosamente. Total bytes recibidos: ${totalBytes}`);
             const buffer = Buffer.concat(chunks);
             resolve(buffer);
         });
 
         stream.on("error", (err) => {
-            console.error("Error en el flujo:", err);
+            console.error("Error en el stream:", err);
             reject(err);
         });
 
-        // Establecer un timeout por si el stream se queda estancado
         const timeout = setTimeout(() => {
-            stream.destroy();
-            reject(new Error("Timeout: El stream no respondió en 30 segundos"));
-        }, 30000);
+            console.error(`Timeout alcanzado después de ${TIMEOUT_DURATION/1000} segundos`);
+            if (stream.destroy && typeof stream.destroy === 'function') {
+                stream.destroy();
+            }
+            reject(new Error(`Timeout: El stream no respondió en ${TIMEOUT_DURATION/1000} segundos`));
+        }, TIMEOUT_DURATION);
 
         // Limpiar el timeout si el stream termina correctamente
-        stream.on("end", () => clearTimeout(timeout));
-        stream.on("error", () => clearTimeout(timeout));
+        stream.on("end", () => {
+            clearTimeout(timeout);
+        });
+
+        stream.on("error", () => {
+            clearTimeout(timeout);
+        });
     });
 }
 
