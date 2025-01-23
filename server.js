@@ -173,17 +173,6 @@ app.get('/disconnect', async (req, res) => {
 app.get('/daily-message', async (req, res) => {
     if (!isConnected) return res.status(400).send('WhatsApp client not connected');
 
-    //lista de random voice de eleven labs
-    const voices = [
-        "CaJslL1xziwefCeTNzHv",
-        "uEtBdoxJywfMwzd5cfSv",
-        "9rPXcCBrQoFQhLPQ4aqV",
-        "86V9x9hrQds83qf7zaGn",
-        "YExhVa4bZONzeingloMX"
-    ]
-
-    const randomVoice = voices[Math.floor(Math.random() * voices.length)];
-
     // Get today's date
     const today = new Date();
     const day = today.getDate();
@@ -312,13 +301,13 @@ Mi nombre es Martín y debes de darme los buenos días usando mi nombre y o dici
 
 
         const clientEL = new ElevenLabsClient({ apiKey: el_api_key });
-        const audio1 = await clientEL.textToSpeech.convert(randomVoice, {
+        const audio1 = await clientEL.textToSpeech.convert("uEtBdoxJywfMwzd5cfSv", {
             output_format: "mp3_44100_128",
             text: saludo,
             model_id: "eleven_multilingual_v2",
         });
 
-        const audio2 = await clientEL.textToSpeech.convert(randomVoice, {
+        const audio2 = await clientEL.textToSpeech.convert("uEtBdoxJywfMwzd5cfSv", {
             output_format: "mp3_44100_128",
             text: mensaje_final,
             model_id: "eleven_multilingual_v2",
