@@ -215,5 +215,5 @@ app.use(express.static('public'));
 
 // Add server listening
 server.listen(3000, '0.0.0.0', () => {
-    console.log('Server running on http://localhost:3000');
+    console.log('Servidor corriendo en http://0.0.0.0:3000');
 });
