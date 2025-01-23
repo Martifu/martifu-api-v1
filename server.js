@@ -5,6 +5,34 @@ const socketIo = require('socket.io');
 const http = require('http');
 const axios = require('axios');
 const { TodoistApi } = require('@doist/todoist-api-typescript');
+const fs = require('fs');
+const path = require('path');
+const rimraf = require('rimraf');
+
+// Add cleanup function
+function clearWWebJSCache() {
+    const paths = [
+        path.join(__dirname, '.wwebjs_auth'),
+        path.join(__dirname, '.wwebjs_cache')
+    ];
+
+    paths.forEach(path => {
+        if (fs.existsSync(path)) {
+            rimraf.sync(path);
+            console.log(`Deleted: ${path}`);
+        }
+    });
+}
+
+// Clear cache on startup
+clearWWebJSCache();
+
+// Add cleanup on app exit
+process.on('SIGINT', async () => {
+    console.log('Cleaning up...');
+    clearWWebJSCache();
+    process.exit(0);
+});
 
 
 const app = express();
@@ -29,6 +57,14 @@ const client = new Client({
 });
 
 let isConnected = false;
+
+io.on('connection', (socket) => {
+    socket.on('checkState', () => {
+        socket.emit('wa_state', {
+            connected: client.info ? true : false
+        });
+    });
+});
 
 
 client.initialize();

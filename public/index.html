@@ -60,16 +60,17 @@
     <button onclick="disconnect()">Desconectar</button>
     <button onclick="generateQR()">Generar QR</button>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        //port 3000 0.0.0.0
-        const socket = io({
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionAttempts: 5,
-        });
+        const socket = io();
         const qrContainer = document.getElementById('qr-container');
         const statusDiv = document.getElementById('status');
+
+        // Check initial state on page load
+        socket.on('connect', () => {
+            socket.emit('checkState');
+        });
+
 
         socket.on('qr', (qrUrl) => {
             qrContainer.innerHTML = `<img src="${qrUrl}" alt="QR Code">`;
@@ -79,6 +80,18 @@
             statusDiv.textContent = statusText;
             statusDiv.className = statusText === 'Conectado' ? 'status connected' : 'status disconnected';
         });
+
+        socket.on('wa_state', (state) => {
+            if (state.connected) {
+                statusDiv.textContent = 'Conectado';
+                statusDiv.className = 'status connected';
+                qrContainer.innerHTML = '';
+            } else {
+                statusDiv.textContent = 'Desconectado';
+                statusDiv.className = 'status disconnected';
+            }
+        });
+
 
         function disconnect() {
             fetch('/disconnect').then(() => location.reload());
