@@ -341,9 +341,26 @@ Mi nombre es Martín y debes de darme los buenos días usando mi nombre y o dici
 async function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
         const chunks = [];
-        stream.on("data", (chunk) => chunks.push(chunk));
-        stream.on("end", () => resolve(Buffer.concat(chunks)));
-        stream.on("error", reject);
+
+        stream.on("data", (chunk) => {
+            console.log("Chunk recibido:", chunk.length, "bytes");
+            chunks.push(chunk);
+        });
+
+        stream.on("end", () => {
+            console.log("Flujo finalizado");
+            resolve(Buffer.concat(chunks));
+        });
+
+        stream.on("error", (err) => {
+            console.error("Error en el flujo:", err);
+            reject(err);
+        });
+
+        // Forzar que el flujo comience a emitir datos
+        stream.resume();
+
+        console.log("Escuchando eventos del flujo...");
     });
 }
 
